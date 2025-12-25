@@ -1,3 +1,4 @@
-node_modules
+yaml
+yaml.pub
 .env
-.DS_Store
+node_modules
