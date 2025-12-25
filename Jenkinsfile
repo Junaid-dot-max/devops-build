@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        DEV_REPO  = "ahamedjunaid/devops-build"
-        PROD_REPO = "ahamedjunaid/devops-build-prod"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        IMAGE_NAME = "ahamedjunaid/react-app"
+        IMAGE_TAG  = "prod"
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
@@ -16,36 +16,30 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t react-app .'
+                sh 'docker build -t react-app:latest .'
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Tag Image as PROD') {
             steps {
-                script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'dockerhub-creds',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
-                        sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                sh 'docker tag react-app:latest ahamedjunaid/react-app:prod'
+            }
+        }
 
-                        if (env.BRANCH_NAME == 'dev') {
-                            sh """
-                            docker tag react-app ${DEV_REPO}:${IMAGE_TAG}
-                            docker push ${DEV_REPO}:${IMAGE_TAG}
-                            """
-                        }
-
-                        if (env.BRANCH_NAME == 'main') {
-                            sh """
-                            docker tag react-app ${PROD_REPO}:${IMAGE_TAG}
-                            docker push ${PROD_REPO}:${IMAGE_TAG}
-                            """
-                        }
-                    }
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([string(credentialsId: 'dockerhub-pass', variable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u ahamedjunaid --password-stdin'
                 }
+            }
+        }
+
+        stage('Push PROD Image') {
+            steps {
+                sh 'docker push ahamedjunaid/react-app:prod'
             }
         }
     }
 }
+
+EOF
